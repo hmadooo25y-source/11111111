@@ -125,6 +125,7 @@ h1 {
   outline-offset: 3px;
 }
 .empty { margin: 0; color: var(--muted); }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .stagebar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
 .hint { margin: 0; color: var(--muted); font-size: 13.5px; flex: 1 1 320px; min-width: 0; text-wrap: pretty; }
 .switch { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
@@ -181,6 +182,14 @@ select {
   padding: 9px 10px; border-radius: 9px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink);
 }
+.stepper { display: flex; gap: 6px; align-items: stretch; }
+.stepper .btn { padding: 8px 4px; min-width: 46px; font-size: 13px; font-variant-numeric: tabular-nums; direction: ltr; }
+.stepper input[type="number"] {
+  flex: 1 1 0; min-width: 0; width: 100%; text-align: center;
+  font: inherit; font-size: 15px; font-weight: 500;
+  padding: 8px 4px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
 .btns { display: flex; flex-wrap: wrap; gap: 8px; }
 .btns .btn { flex: 1 1 auto; }
 .fieldnote { margin: 0; color: var(--muted); font-size: 12.5px; text-wrap: pretty; }
@@ -189,6 +198,22 @@ select {
 .status.ok { color: var(--accent); }
 .note { margin: 0; padding: 10px 12px; border-radius: 9px; background: var(--accent-soft); font-size: 13.5px; }
 
+@media (max-width: 919px) {
+  :root { --maxh: min(36vh, 340px); }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+  .stagewrap { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 6px 8px; gap: 6px; }
+  .stage { padding: 8px; min-height: 0; }
+  .hint { display: none; }
+  .stagebar { justify-content: flex-start; }
+}
+@media (min-width: 920px) { .mobile-tip { display: none; } }
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .stepper input[type="number"], select { font-size: 16px; min-height: 44px; }
+  .switch { min-height: 36px; }
+  .switch input { width: 22px; height: 22px; }
+  .desktop-only { display: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
@@ -214,8 +239,11 @@ select {
       <p id="stageEmpty" class="empty">جارٍ تجهيز الصور…</p>
     </div>
     <div class="stagebar">
-      <p class="hint">اسحب الصورة العلوية لتحريكها، واسحب الدائرة في زاويتها لتكبيرها أو تصغيرها. على الهاتف يمكنك التكبير بإصبعين.</p>
-      <label class="switch"><input type="checkbox" id="frame" checked> إطار التحديد</label>
+      <p class="hint">اسحب الصورة العلوية لتحريكها. للتكبير والتصغير استخدم إصبعين أو عجلة الفأرة أو الأزرار، أو فعّل «إطار التحديد» واسحب الدائرة الصغيرة في زاويته. فعّل «ضبط دقيق» (أو اضغط Shift) لتصبح الحركة أبطأ وأدق.</p>
+      <div class="toggles">
+        <label class="switch"><input type="checkbox" id="fine"> ضبط دقيق</label>
+        <label class="switch"><input type="checkbox" id="frame"> إطار التحديد</label>
+      </div>
     </div>
   </section>
 
@@ -240,14 +268,22 @@ select {
         <button type="button" class="btn" id="pickOver">تغيير</button>
         <input type="file" accept="image/*" hidden id="fileOver">
       </div>
-      <p class="fieldnote">يمكنك أيضًا سحب ملف صورة وإفلاته على أي من الصندوقين. الشفافية في ملفات PNG تبقى كما هي.</p>
+      <p class="fieldnote"><span class="desktop-only">يمكنك أيضًا سحب ملف صورة وإفلاته على أي من الصندوقين. </span>الشفافية في ملفات PNG تبقى كما هي.</p>
     </div>
 
     <div class="sec">
       <h2>ضبط الصورة العلوية</h2>
+      <p class="fieldnote mobile-tip">اسحب الصورة العلوية لتحريكها، وللتكبير والتصغير استخدم إصبعين أو الأزرار أدناه. فعّل «ضبط دقيق» فوق المعاينة لتصبح الحركة أبطأ وأدق.</p>
       <div class="row">
-        <div class="row-head"><label for="size">الحجم</label><output id="sizeOut" class="num"></output></div>
-        <input type="range" id="size" min="2" max="300" step="0.5">
+        <div class="row-head"><label for="sizeNum">الحجم (%)</label></div>
+        <div class="stepper">
+          <button type="button" class="btn" data-step="-1" aria-label="تصغير بمقدار 1%">−1</button>
+          <button type="button" class="btn" data-step="-0.1" aria-label="تصغير بمقدار 0.1%">−0.1</button>
+          <input type="number" id="sizeNum" class="num" min="1" max="300" step="0.1" inputmode="decimal" aria-label="الحجم بالنسبة المئوية">
+          <button type="button" class="btn" data-step="0.1" aria-label="تكبير بمقدار 0.1%">+0.1</button>
+          <button type="button" class="btn" data-step="1" aria-label="تكبير بمقدار 1%">+1</button>
+        </div>
+        <input type="range" id="size" min="1" max="300" step="0.1" aria-label="الحجم">
       </div>
       <div class="row">
         <div class="row-head"><label for="rot">التدوير</label><output id="rotOut" class="num"></output></div>
@@ -273,6 +309,36 @@ select {
         <button type="button" class="btn" id="center">توسيط</button>
         <button type="button" class="btn" id="reset">إعادة الضبط</button>
       </div>
+    </div>
+
+    <div class="sec">
+      <h2>دمج طبيعي</h2>
+      <p class="fieldnote">تجعل هذه الخيارات الصورة العلوية تبدو جزءًا من الصورة الخلفية بدل أن تبدو ملصقة فوقها.</p>
+      <div class="btns">
+        <button type="button" class="btn" id="autoEnhance">تحسين تلقائي</button>
+        <button type="button" class="btn" id="noEnhance">إزالة التحسين</button>
+      </div>
+      <div class="row">
+        <div class="row-head"><label for="feather">تنعيم الحواف</label><output id="featherOut" class="num"></output></div>
+        <input type="range" id="feather" min="0" max="100" step="1">
+      </div>
+      <div class="row">
+        <div class="row-head"><label for="match">مطابقة الألوان مع الخلفية</label><output id="matchOut" class="num"></output></div>
+        <input type="range" id="match" min="0" max="100" step="1">
+      </div>
+      <div class="row">
+        <div class="row-head"><label for="soft">تنعيم الحدة</label><output id="softOut" class="num"></output></div>
+        <input type="range" id="soft" min="0" max="100" step="1">
+      </div>
+      <div class="row">
+        <div class="row-head"><label for="shadow">ظل ناعم</label><output id="shadowOut" class="num"></output></div>
+        <input type="range" id="shadow" min="0" max="100" step="1">
+      </div>
+      <div class="row">
+        <div class="row-head"><label for="grain">حبيبات الصورة</label><output id="grainOut" class="num"></output></div>
+        <input type="range" id="grain" min="0" max="100" step="1">
+      </div>
+      <p class="fieldnote">الحواف تُدرّج الشفافية عند أطراف الصورة. المطابقة تقرّب ألوانها وتباينها من الخلفية. الحدة والحبيبات تقرّبان ملمسها من ملمس الصورة الأصلية.</p>
     </div>
 
     <div class="sec">
@@ -308,13 +374,19 @@ select {
   var state = {
     base: null, over: null,
     cx: DEFAULTS.cx, cy: DEFAULTS.cy, wf: DEFAULTS.wf, rot: 0, op: 1, flip: false, blend: 'source-over',
-    frame: true, mult: 1, format: 'png'
+    frame: false, fine: false, mult: 1, format: 'png',
+    feather: 0, match: 0, soft: 0, shadow: 0, grain: 0, baseThumb: null
   };
+  var imgSeq = 0;
   var downloads = null;
   var pw = 0, ph = 0;
-  var MAX_SIDE = 32767, MAX_AREA = 268435456;
+  var IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var COARSE = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var MAX_SIDE = IS_IOS ? 16384 : 32767;
+  var MAX_AREA = IS_IOS ? 16777216 : (COARSE ? 100000000 : 268435456);
 
   function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+  function fineK(e) { return (state.fine || (e && e.shiftKey)) ? 0.2 : 1; }
   function setStatus(msg, kind) {
     var el = $('status');
     el.textContent = msg || '';
@@ -322,21 +394,174 @@ select {
   }
 
   /* ---------- drawing ---------- */
-  function renderScene(ctx, W, H) {
+  /* ---------- natural blending ---------- */
+  var FILTER_OK = false;
+  (function () {
+    try {
+      var a = document.createElement('canvas'); a.width = 5; a.height = 1;
+      var ax = a.getContext('2d'); ax.fillStyle = '#fff'; ax.fillRect(2, 0, 1, 1);
+      var b = document.createElement('canvas'); b.width = 5; b.height = 1;
+      var bx = b.getContext('2d'); bx.filter = 'blur(1px)'; bx.drawImage(a, 0, 0);
+      FILTER_OK = bx.getImageData(1, 0, 1, 1).data[3] > 0;
+    } catch (e) { FILTER_OK = false; }
+  })();
+
+  function newCanvas(w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+  function noise(x, y) {
+    var h = (Math.imul(x, 374761393) + Math.imul(y, 668265263)) | 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  }
+  function statsOf(d, minA) {
+    var n = 0, s = [0, 0, 0], q = [0, 0, 0], c, i, v;
+    for (i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < minA) continue;
+      n++;
+      for (c = 0; c < 3; c++) { v = d[i + c]; s[c] += v; q[c] += v * v; }
+    }
+    if (n < 16) return null;
+    var mean = [], sd = [];
+    for (c = 0; c < 3; c++) {
+      mean[c] = s[c] / n;
+      sd[c] = Math.sqrt(Math.max(0, q[c] / n - mean[c] * mean[c]));
+    }
+    return { mean: mean, sd: sd };
+  }
+  function smallCopy(img, longest) {
+    var r = Math.min(1, longest / Math.max(img.w, img.h));
+    var w = Math.max(1, Math.round(img.w * r)), h = Math.max(1, Math.round(img.h * r));
+    var c = newCanvas(w, h);
+    var x = c.getContext('2d', { willReadFrequently: true });
+    x.imageSmoothingQuality = 'high';
+    x.drawImage(img.src, 0, 0, w, h);
+    return c;
+  }
+  function overlayStats(img) {
+    var c = smallCopy(img, 128);
+    return statsOf(c.getContext('2d').getImageData(0, 0, c.width, c.height).data, 128);
+  }
+  function baseRegionStats() {
+    var t = state.baseThumb, o = state.over;
+    if (!t || !o) return null;
+    var W = 1000, H = 1000 * state.base.h / state.base.w;
+    var ow = state.wf * W, oh = ow * o.h / o.w, a = state.rot * Math.PI / 180;
+    var hx = (Math.abs(ow * Math.cos(a)) + Math.abs(oh * Math.sin(a))) / 2 * 1.1;
+    var hy = (Math.abs(ow * Math.sin(a)) + Math.abs(oh * Math.cos(a))) / 2 * 1.1;
+    var x0 = clamp(Math.floor((state.cx * W - hx) / W * t.width), 0, t.width - 1);
+    var x1 = clamp(Math.ceil((state.cx * W + hx) / W * t.width), x0 + 1, t.width);
+    var y0 = clamp(Math.floor((state.cy * H - hy) / H * t.height), 0, t.height - 1);
+    var y1 = clamp(Math.ceil((state.cy * H + hy) / H * t.height), y0 + 1, t.height);
+    var d = t.getContext('2d').getImageData(x0, y0, x1 - x0, y1 - y0).data;
+    return statsOf(d, 1);
+  }
+  function buildLut() {
+    var os = state.over && state.over.stats, ts = baseRegionStats();
+    if (!os || !ts) return null;
+    var k = state.match / 100, lut = [];
+    for (var c = 0; c < 3; c++) {
+      var ratio = clamp(ts.sd[c] / Math.max(os.sd[c], 4), 0.6, 1.6);
+      var r = 1 + k * (ratio - 1);
+      var mu = os.mean[c] + k * (ts.mean[c] - os.mean[c]);
+      var L = new Uint8ClampedArray(256);
+      for (var v = 0; v < 256; v++) L[v] = (v - os.mean[c]) * r + mu;
+      lut.push(L);
+    }
+    return lut;
+  }
+  function blurCanvas(src, r) {
+    if (r < 0.3) return src;
+    var t = newCanvas(src.width, src.height), c = t.getContext('2d');
+    c.imageSmoothingQuality = 'high';
+    if (FILTER_OK) {
+      c.filter = 'blur(' + r.toFixed(2) + 'px)';
+      c.drawImage(src, 0, 0);
+    } else {
+      var f = 1 / (1 + r);
+      var sw = Math.max(1, Math.round(src.width * f)), sh = Math.max(1, Math.round(src.height * f));
+      var m = newCanvas(sw, sh);
+      var mc = m.getContext('2d');
+      mc.imageSmoothingQuality = 'high';
+      mc.drawImage(src, 0, 0, sw, sh);
+      c.drawImage(m, 0, 0, src.width, src.height);
+    }
+    return t;
+  }
+  function pixelPass(cv, lut, feather, grain) {
+    if (!lut && feather <= 0 && grain <= 0) return;
+    var ctx = cv.getContext('2d', { willReadFrequently: true });
+    var w = cv.width, h = cv.height;
+    var rows = Math.max(1, Math.floor(4000000 / w));
+    for (var y0 = 0; y0 < h; y0 += rows) {
+      var hh = Math.min(rows, h - y0);
+      var id = ctx.getImageData(0, y0, w, hh), d = id.data;
+      for (var y = 0; y < hh; y++) {
+        var Y = y0 + y;
+        for (var x = 0; x < w; x++) {
+          var i = (y * w + x) * 4, a = d[i + 3];
+          if (a === 0) continue;
+          if (lut) { d[i] = lut[0][d[i]]; d[i + 1] = lut[1][d[i + 1]]; d[i + 2] = lut[2][d[i + 2]]; }
+          if (grain > 0) {
+            var n = (noise(x, Y) + noise(Y + 7, x + 13) - 1) * grain;
+            d[i] += n; d[i + 1] += n; d[i + 2] += n;
+          }
+          if (feather > 0) {
+            var dist = Math.min(x, Y, w - 1 - x, h - 1 - Y);
+            if (dist < feather) {
+              var t = dist / feather;
+              d[i + 3] = a * (t * t * (3 - 2 * t));
+            }
+          }
+        }
+      }
+      ctx.putImageData(id, 0, y0);
+    }
+  }
+
+  var ovCache = { key: '', canvas: null };
+  function buildOverlay(W, useCache) {
+    var o = state.over;
+    var ow = Math.max(1, Math.round(state.wf * W));
+    var oh = Math.max(1, Math.round(ow * o.h / o.w));
+    var key = null;
+    if (useCache) {
+      key = [W, ow, oh, o.id, state.soft, state.feather, state.grain, state.match,
+        state.match > 0 ? [state.cx.toFixed(3), state.cy.toFixed(3), state.rot.toFixed(1)].join() : ''].join('|');
+      if (ovCache.key === key && ovCache.canvas) return ovCache.canvas;
+    }
+    var c = newCanvas(ow, oh), x = c.getContext('2d');
+    x.imageSmoothingEnabled = true;
+    x.imageSmoothingQuality = 'high';
+    x.drawImage(o.src, 0, 0, ow, oh);
+    if (state.soft > 0) c = blurCanvas(c, state.soft / 100 * 0.004 * W);
+    var lut = state.match > 0 ? buildLut() : null;
+    var feather = state.feather > 0 ? state.feather / 100 * 0.25 * Math.min(ow, oh) : 0;
+    var grain = state.grain > 0 ? state.grain / 100 * 16 : 0;
+    pixelPass(c, lut, feather, grain);
+    if (useCache) { ovCache.key = key; ovCache.canvas = c; }
+    return c;
+  }
+
+  function renderScene(ctx, W, H, useCache) {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(state.base.src, 0, 0, W, H);
     if (!state.over) return;
-    var o = state.over;
-    var ow = state.wf * W;
-    var oh = ow * o.h / o.w;
+    var oc = buildOverlay(W, useCache);
     ctx.save();
     ctx.translate(state.cx * W, state.cy * H);
     ctx.rotate(state.rot * Math.PI / 180);
     if (state.flip) ctx.scale(-1, 1);
     ctx.globalAlpha = state.op;
     ctx.globalCompositeOperation = state.blend;
-    ctx.drawImage(o.src, -ow / 2, -oh / 2, ow, oh);
+    if (state.shadow > 0) {
+      var k = state.shadow / 100, blur = (0.003 + 0.02 * k) * W;
+      ctx.shadowColor = 'rgba(0,0,0,' + (0.15 + 0.5 * k).toFixed(3) + ')';
+      ctx.shadowBlur = blur;
+      ctx.shadowOffsetX = blur * 0.15;
+      ctx.shadowOffsetY = blur * 0.4;
+    }
+    ctx.drawImage(oc, -oc.width / 2, -oc.height / 2);
     ctx.restore();
   }
 
@@ -361,20 +586,19 @@ select {
     sctx.translate(g.cx, g.cy);
     sctx.rotate(g.a);
     sctx.setLineDash([]);
-    sctx.strokeStyle = 'rgba(0,0,0,0.55)';
-    sctx.lineWidth = 3.5 * k;
+    sctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    sctx.lineWidth = 2 * k;
     sctx.strokeRect(-g.ow / 2, -g.oh / 2, g.ow, g.oh);
-    sctx.strokeStyle = '#FFFFFF';
-    sctx.lineWidth = 1.75 * k;
-    sctx.setLineDash([7 * k, 5 * k]);
+    sctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    sctx.lineWidth = 1 * k;
     sctx.strokeRect(-g.ow / 2, -g.oh / 2, g.ow, g.oh);
     sctx.restore();
     sctx.beginPath();
-    sctx.arc(g.hx, g.hy, 9 * k, 0, Math.PI * 2);
-    sctx.fillStyle = '#FFFFFF';
+    sctx.arc(g.hx, g.hy, 5 * k, 0, Math.PI * 2);
+    sctx.fillStyle = 'rgba(255,255,255,0.95)';
     sctx.fill();
-    sctx.lineWidth = 2.5 * k;
-    sctx.strokeStyle = 'rgba(0,0,0,0.7)';
+    sctx.lineWidth = 1 * k;
+    sctx.strokeStyle = 'rgba(0,0,0,0.5)';
     sctx.stroke();
   }
 
@@ -390,22 +614,32 @@ select {
     pw = w; ph = h;
   }
 
-  function draw() {
+  var raf = 0;
+  function drawNow() {
+    raf = 0;
     if (!state.base) return;
     sctx.clearRect(0, 0, pw, ph);
-    renderScene(sctx, pw, ph);
+    renderScene(sctx, pw, ph, true);
     if (state.frame && state.over) drawFrame();
+  }
+  function draw() {
+    if (raf) return;
+    raf = requestAnimationFrame(drawNow);
   }
 
   /* ---------- controls sync ---------- */
   function syncControls() {
     $('size').value = (state.wf * 100).toFixed(1);
-    $('sizeOut').textContent = Math.round(state.wf * 100) + '%';
+    if (document.activeElement !== $('sizeNum')) $('sizeNum').value = (state.wf * 100).toFixed(1);
     $('rot').value = state.rot;
     $('rotOut').textContent = Math.round(state.rot) + '°';
     $('op').value = Math.round(state.op * 100);
     $('opOut').textContent = Math.round(state.op * 100) + '%';
     $('blend').value = state.blend;
+    ['feather', 'match', 'soft', 'shadow', 'grain'].forEach(function (k) {
+      $(k).value = state[k];
+      $(k + 'Out').textContent = Math.round(state[k]) + '%';
+    });
   }
   function changed() { syncControls(); draw(); }
 
@@ -444,7 +678,7 @@ select {
     var first = null;
     [1, 2, 3, 4].forEach(function (m) {
       var W = b.w * m, H = b.h * m;
-      var ok = W <= MAX_SIDE && H <= MAX_SIDE && W * H <= MAX_AREA;
+      var ok = m === 1 || (W <= MAX_SIDE && H <= MAX_SIDE && W * H <= MAX_AREA);
       if (ok && first === null) first = m;
       var name = m === 1 ? 'الأصلية ×1' : '×' + m;
       html += '<option value="' + m + '"' + (ok ? '' : ' disabled') + '>' + name + ' · ⁦' + W + ' × ' + H + '⁩</option>';
@@ -493,6 +727,7 @@ select {
 
   function setBase(img) {
     state.base = img;
+    state.baseThumb = smallCopy(img, 200);
     layoutPreview();
     updateSlot('base');
     updateOutputOptions();
@@ -503,6 +738,8 @@ select {
   }
   function setOver(img) {
     state.over = img;
+    img.id = ++imgSeq;
+    img.stats = overlayStats(img);
     state.cx = DEFAULTS.cx; state.cy = DEFAULTS.cy; state.rot = 0; state.flip = false;
     fitOverlayDefault();
     updateSlot('over');
@@ -615,7 +852,7 @@ select {
   function hitTest(p) {
     if (!state.over) return null;
     var g = geom(), k = cssK();
-    if (Math.hypot(p.x - g.hx, p.y - g.hy) <= 22 * k) return 'scale';
+    if (state.frame && Math.hypot(p.x - g.hx, p.y - g.hy) <= 22 * k) return 'scale';
     var dx = p.x - g.cx, dy = p.y - g.cy;
     var lx = dx * Math.cos(-g.a) - dy * Math.sin(-g.a);
     var ly = dx * Math.sin(-g.a) + dy * Math.cos(-g.a);
@@ -653,7 +890,7 @@ select {
     }
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (mode === 'pinch' && pointers.size >= 2) {
-      state.wf = clamp(startWf * pinchDist() / startDist, 0.02, 3);
+      state.wf = clamp(startWf * Math.pow(pinchDist() / startDist, fineK(e)), 0.01, 3);
       changed();
     } else if (mode === 'move' && pointers.size === 1) {
       var p = toCanvas(e);
@@ -665,7 +902,7 @@ select {
       var q = toCanvas(e);
       var g2 = geom();
       var d = Math.hypot(q.x - g2.cx, q.y - g2.cy);
-      state.wf = clamp(startWf * d / startDist, 0.02, 3);
+      state.wf = clamp(startWf * Math.pow(d / startDist, fineK(e)), 0.01, 3);
       changed();
     }
   });
@@ -679,7 +916,7 @@ select {
   stage.addEventListener('wheel', function (e) {
     if (!state.over || !hitTest(toCanvas(e))) return;
     e.preventDefault();
-    state.wf = clamp(state.wf * Math.exp(-e.deltaY * 0.0015), 0.02, 3);
+    state.wf = clamp(state.wf * Math.exp(-e.deltaY * 0.0015 * fineK(e)), 0.01, 3);
     changed();
   }, { passive: false });
   stage.addEventListener('keydown', function (e) {
@@ -689,14 +926,31 @@ select {
     else if (e.key === 'ArrowRight') state.cx = clamp(state.cx + step, 0, 1);
     else if (e.key === 'ArrowUp') state.cy = clamp(state.cy - step, 0, 1);
     else if (e.key === 'ArrowDown') state.cy = clamp(state.cy + step, 0, 1);
-    else if (e.key === '+' || e.key === '=') state.wf = clamp(state.wf * 1.05, 0.02, 3);
-    else if (e.key === '-') state.wf = clamp(state.wf / 1.05, 0.02, 3);
+    else if (e.key === '+' || e.key === '=') state.wf = clamp(state.wf * (e.shiftKey ? 1.002 : 1.01), 0.01, 3);
+    else if (e.key === '-') state.wf = clamp(state.wf / (e.shiftKey ? 1.002 : 1.01), 0.01, 3);
     else used = false;
     if (used) { e.preventDefault(); changed(); }
   });
 
   /* ---------- panel events ---------- */
-  $('size').addEventListener('input', function (e) { state.wf = clamp(parseFloat(e.target.value) / 100, 0.02, 3); changed(); });
+  $('size').addEventListener('input', function (e) { state.wf = clamp(parseFloat(e.target.value) / 100, 0.01, 3); changed(); });
+  $('sizeNum').addEventListener('input', function (e) {
+    var v = parseFloat(e.target.value);
+    if (!isFinite(v)) return;
+    state.wf = clamp(v / 100, 0.01, 3);
+    changed();
+  });
+  $('sizeNum').addEventListener('change', function () { syncControls(); $('sizeNum').value = (state.wf * 100).toFixed(1); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-step]'), function (b) {
+    b.addEventListener('click', function () {
+      var step = parseFloat(b.getAttribute('data-step'));
+      var pct = Math.round((state.wf * 100 + step) * 10) / 10;
+      state.wf = clamp(pct / 100, 0.01, 3);
+      changed();
+      $('sizeNum').value = (state.wf * 100).toFixed(1);
+    });
+  });
+  $('fine').addEventListener('change', function (e) { state.fine = e.target.checked; });
   $('rot').addEventListener('input', function (e) { state.rot = parseFloat(e.target.value); changed(); });
   $('op').addEventListener('input', function (e) { state.op = parseFloat(e.target.value) / 100; changed(); });
   $('blend').addEventListener('change', function (e) { state.blend = e.target.value; changed(); });
@@ -704,7 +958,20 @@ select {
   $('center').addEventListener('click', function () { state.cx = 0.5; state.cy = 0.5; changed(); });
   $('reset').addEventListener('click', function () {
     state.cx = DEFAULTS.cx; state.cy = DEFAULTS.cy; state.rot = 0; state.op = 1; state.flip = false; state.blend = 'source-over';
+    state.feather = state.match = state.soft = state.shadow = state.grain = 0;
     fitOverlayDefault();
+    changed();
+  });
+  ['feather', 'match', 'soft', 'shadow', 'grain'].forEach(function (k) {
+    $(k).addEventListener('input', function (e) { state[k] = parseFloat(e.target.value); changed(); });
+  });
+  var AUTO = { feather: 15, match: 65, soft: 12, shadow: 30, grain: 20 };
+  $('autoEnhance').addEventListener('click', function () {
+    Object.keys(AUTO).forEach(function (k) { state[k] = AUTO[k]; });
+    changed();
+  });
+  $('noEnhance').addEventListener('click', function () {
+    Object.keys(AUTO).forEach(function (k) { state[k] = 0; });
     changed();
   });
   $('frame').addEventListener('change', function (e) { state.frame = e.target.checked; draw(); });
