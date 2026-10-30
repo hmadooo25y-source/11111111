@@ -17,6 +17,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # إذا رُفع المشروع كزيب (overlay-app-v2.zip) في جذر المستودع، نفكّه هنا
+      - name: Extract project zip (if present)
+        run: |
+          if [ ! -f package.json ] && [ -f overlay-app-v2.zip ]; then
+            unzip -o overlay-app-v2.zip
+          fi
+          ls -la
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
